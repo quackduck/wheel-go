@@ -6,36 +6,29 @@ import (
 )
 
 type layer struct {
-	// weights[i][j] is the weight from neuron i of input to neuron j of this layer
-	// therefore weights has size
-	weights     [][]float64
-	biases      []float64
-	activations []float64
-	gradients   []float64
+	// weights[i][j] is the weight from neuron i of this layer to neuron j of the previous layer
+	// therefore len(weights) is the number of neurons in this layer and len(weights[0]) is the number of inputs
+	weights     [][]float64 // weights for each neuron
+	biases      []float64   // bias for each neuron
+	activations []float64   // activations for each neuron
+	zs          []float64   // weighted sum for each neuron + bias
+	//input       []float64
 
-	nextLayer *layer
-	prevLayer *layer
+	//nextLayer *layer
+	//prevLayer *layer
 }
 
 func newLayer(weights [][]float64, biases []float64) *layer {
 	return &layer{
 		weights:     weights,
 		biases:      biases,
-		activations: make([]float64, len(biases)),
-		gradients:   make([]float64, len(biases)),
+		activations: make([]float64, len(weights)),
+		zs:          make([]float64, len(weights)),
 	}
 }
 
 func newRandomLayer(inputSize, thisSize int) *layer {
 	return newLayer(randomWeights(inputSize, thisSize), randomBiases(thisSize))
-}
-
-func (l *layer) connectNext(nextLayer *layer) {
-	l.nextLayer = nextLayer
-}
-
-func (l *layer) connectPrev(prevLayer *layer) {
-	l.prevLayer = prevLayer
 }
 
 func randomWeights(inputSize, thisSize int) [][]float64 {
@@ -73,118 +66,75 @@ func costPrime(err float64) float64 {
 	return 2 * err
 }
 
+type network []*layer
+
+func (n network) forward(input []float64) []float64 {
+	n[0].activations = input // set the input layer's activations
+	for i := range n {
+		if i == 0 {
+			continue
+		}
+		//fmt.Println("forwarding layer", i, "with input", n[i-1].activations, "weights", n[i].weights, "biases", n[i].biases)
+		n[i].forward(input)
+		input = n[i].activations
+	}
+	return n[len(n)-1].activations
+}
+
 func (l *layer) forward(input []float64) {
-	l.activations = make([]float64, len(l.weights))
-	for i, weights := range l.weights {
+	for i, weights := range l.weights { // for each neuron in this layer
 		var sum float64
-		for j, weight := range weights {
+		for j, weight := range weights { // for each input to that neuron
 			sum += weight * input[j]
 		}
-		l.activations[i] = activate(sum + l.biases[i])
-	}
-
-	if l.nextLayer != nil {
-		l.nextLayer.forward(l.activations)
+		l.zs[i] = sum + l.biases[i]
+		l.activations[i] = activate(l.zs[i])
 	}
 }
 
-var costList []float64
+func (n network) backward(wanted []float64) {
 
-// assumes forward has been called and activations are set
-func (l *layer) backward(wanted []float64) {
+	rate := 0.1
 
-	if l.prevLayer == nil {
-		// this is the first layer, so we don't need to update anything
-		return
+	delta := make([]float64, len(wanted)) // delta[j] is delC / delZ[j]
+	for i, activation := range n[len(n)-1].activations {
+		delta[i] = 2 * costPrime(activation-wanted[i]) * activatePrime(n[len(n)-1].zs[i]) // delC / delZ
+		updateLayerWithDelta(n[len(n)-1], n[len(n)-2], delta, rate)
 	}
 
-	learnRate := 0.1
-
-	//// get current cost
-	var cost float64
-	for i, activation := range l.activations {
-		cost += costFunc(activation - wanted[i])
-	}
-	//fmt.Println("cost:", cost)
-	costList = append(costList, cost)
-
-	// calculate derivative of cost with respect to this layer's weights.
-	// we do this by getting derivative of cost with respect to activations (dC/dA)
-	// then derivative of activations with respect to weighted sum (dA/dZ)
-	// then derivative of weighted sum with respect to weights (dZ/dW)
-	// multiply these together to get dC/dW (chain rule)
-
-	// cost = sum(costFunc(sum(activate(weights * input + bias)) - wanted))
-	// z = w * input + bias
-	// a = activate(z)
-	// therefore cost = sum(costFunc(a - wanted))
-
-	// dC/dA -> impact of each activation on the cost
-	dCdA := make([]float64, len(l.activations))
-	for i, activation := range l.activations {
-		dCdA[i] = costPrime(activation - wanted[i])
-	}
-
-	// dA/dZ
-	dAdZ := make([]float64, len(l.activations))
-	for i, activation := range l.activations {
-		dAdZ[i] = activatePrime(activation)
-	}
-
-	// dZ/dW
-	dZdW := make([][]float64, len(l.weights))
-	for i, weights := range l.weights { // for each neuron
-		dZdW[i] = make([]float64, len(weights))
-		for j := range weights { // for each input of that neuron
-			dZdW[i][j] = l.prevLayer.activations[j]
+	for i := len(n) - 2; i >= 1; i-- { // for each layer except the input and output
+		newdelta := make([]float64, len(n[i].activations)) // one for each neuron
+		// go over all the neurons in the next layer and add up the impact of their delta on this layer's delta
+		for j := range n[i].activations { // for each neuron in this layer
+			var sum float64
+			for k := range n[i+1].activations { // for each neuron in the next layer
+				sum += n[i+1].weights[k][j] * delta[k]
+			}
+			newdelta[j] = sum * activatePrime(n[i].zs[j])
 		}
+		updateLayerWithDelta(n[i], n[i-1], newdelta, rate)
+		delta = newdelta
 	}
+}
 
-	// dC/dW
-	dCdW := make([][]float64, len(l.weights))
-	for i, weights := range l.weights { // for each neuron
-		dCdW[i] = make([]float64, len(weights))
-		for j := range weights { // for each input of that neuron
-			dCdW[i][j] = dCdA[i] * dAdZ[i] * dZdW[i][j]
-		}
-	}
-
-	// update weights
+func updateLayerWithDelta(l *layer, lp *layer, delta []float64, learnRate float64) {
 	for i, weights := range l.weights {
 		for j := range weights {
-			l.weights[i][j] -= learnRate * dCdW[i][j] // negative gradient
+			l.weights[i][j] -= learnRate * errorToDelCDelWeight(delta[i], lp.activations[j])
 		}
 	}
-
-	// update biases
 	for i := range l.biases {
-		l.biases[i] -= learnRate * dCdA[i] * dAdZ[i] // negative gradient
+		l.biases[i] -= learnRate * errorToDelCDelBias(delta[i])
 	}
+}
 
-	// dc/daprev = sum(dc/dz * dz/daprev)
-	// dz/daprev = weights
-	// dc/dz = sum(dc/da * da/dz)
-	// da/dz = activatePrime
+// delta should be the error for the neuron that this weight is for
+// prevActive should be the activation of the neuron that this weight is for in the previous layer
+func errorToDelCDelWeight(delta, prevActive float64) float64 {
+	return delta * prevActive
+}
 
-	dCdAprev := make([]float64, len(l.prevLayer.activations))
-
-	for i := range l.prevLayer.activations {
-		var sum float64
-		for j, weights := range l.weights { // for each neuron
-			sum += dCdA[j] * dAdZ[j] * weights[i]
-		}
-		dCdAprev[i] = sum
-	}
-
-	// now we can figure out what the activations of the previous layer should have been
-	// and update them
-
-	activationsWanted := make([]float64, len(l.prevLayer.activations))
-	for i := range l.prevLayer.activations {
-		activationsWanted[i] = l.prevLayer.activations[i] - dCdAprev[i]*learnRate // negative gradient
-	}
-
-	//if l.prevLayer != nil {
-	//	l.prevLayer.backward(activationsWanted)
-	//}
+// delta should be the error for the neuron that this bias is for
+func errorToDelCDelBias(delta float64) float64 {
+	return delta
 }
