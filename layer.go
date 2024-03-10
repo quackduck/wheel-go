@@ -33,11 +33,12 @@ func newRandomLayer(inputSize, thisSize int) *layer {
 
 func randomWeights(inputSize, thisSize int) [][]float64 {
 	weights := make([][]float64, thisSize)
+	variance := 2 / float64(inputSize+thisSize) // xavier initialization
 	for i := range weights {
 		weights[i] = make([]float64, inputSize)
 		for j := range weights[i] {
-			weights[i][j] = rand.Float64()*2 - 1
-			//weights[i][j] = rand.NormFloat64()
+			//weights[i][j] = rand.Float64()*2 - 1
+			weights[i][j] = rand.NormFloat64() * math.Sqrt(variance)
 		}
 	}
 	return weights
