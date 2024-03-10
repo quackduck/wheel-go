@@ -9,26 +9,35 @@ func main() {
 
 	n := &network{
 		layers: []*layer{
-			newRandomLayer(0, 1), // input layer
-			newRandomLayer(1, 4),
-			newRandomLayer(4, 4),
-			newRandomLayer(4, 4),
+			newRandomLayer(0, 784), // input layer
+			//newRandomLayer(784, 32),
+			newRandomLayer(784, 16),
+			newRandomLayer(16, 16),
+			//newRandomLayer(16, 16),
+			//newRandomLayer(16, 16),
+			//newRandomLayer(16, 16),
+			//newRandomLayer(16, 16),
+			//newRandomLayer(16, 16),
+			//newRandomLayer(32, 10),
+			newRandomLayer(16, 10), // output layer
 			//newRandomLayer(4, 5),
-			newRandomLayer(4, 1),
+			//newRandomLayer(10, 1),
 		},
 	}
 
 	//fmt.Println(n[1].weights)
 
-	input := []float64{1}
-	fmt.Println(n.forward(input))
+	//input := []float64{1}
+	//fmt.Println(n.forward(input))
 
-	fmt.Println(n)
+	//fmt.Println(n)
 
 	// train
 	lastCost := -1.0
-	inputs, targets := makeTrainingDataX2()
-	for i := 0; i < 1_000_000; i++ {
+
+	//fmt.Println("Training data size", len(inputs))
+	for i := 0; i < 1000; i++ {
+		inputs, targets := makeTrainingDataMNIST()
 		//for d := 0.0; d < 1; d += 0.01 {
 		//	//input := []float64{d}
 		//	//target := []float64{math.Sin(d * 2 * math.Pi)}
@@ -44,7 +53,7 @@ func main() {
 			n.backward(targets[i])
 		}
 
-		if i%1000 == 0 {
+		if i%10 == 0 {
 			fmt.Println("iteration", i, "cost", n.cost)
 			if lastCost > 0 {
 				fmt.Println("cost ratio", n.cost/lastCost)
@@ -52,6 +61,8 @@ func main() {
 				fmt.Println("Score", 1/n.cost)
 			}
 			lastCost = n.cost
+
+			test(n)
 
 			//for d := 0.0; d < 1; d += 0.01 {
 			//	input := []float64{d}
@@ -79,17 +90,35 @@ func main() {
 		//n.backward(target)
 	}
 
-	for d := -1.0; d < 1; d += 0.005 {
-		input := []float64{d}
-		fmt.Println(input[0], ",", n.forward(input)[0])
-		//fmt.Println(n.forward(input)[0])
-	}
+	//for d := -1.0; d < 1; d += 0.005 {
+	//	input := []float64{d}
+	//	fmt.Println(input[0], ",", n.forward(input)[0])
+	//	//fmt.Println(n.forward(input)[0])
+	//}
 
 	fmt.Println("Score", 1/n.cost)
 
-	fmt.Println(n.layers[1].weights)
+	test(n)
 
-	fmt.Println(n)
+	//fmt.Println(n.layers[1].weights)
+
+	//fmt.Println(n)
+}
+
+func test(n *network) {
+	inputs, targets := makeTestingDataMNIST()
+	fmt.Println("Testing data size", len(inputs))
+	correct := 0
+	for i := range inputs {
+		output := n.forward(inputs[i])
+		fmt.Println("Output", output, "Target", targets[i])
+		if getIndexWithMaxValue(output) == getIndexWithMaxValue(targets[i]) {
+			correct++
+		} else {
+			fmt.Println("Incorrect")
+		}
+	}
+	fmt.Println("Correct", correct, "out of", len(inputs))
 }
 
 func oneHot(n int, i int) []float64 {

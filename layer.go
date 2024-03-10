@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 )
 
 type layer struct {
@@ -37,6 +37,7 @@ func randomWeights(inputSize, thisSize int) [][]float64 {
 		weights[i] = make([]float64, inputSize)
 		for j := range weights[i] {
 			weights[i][j] = rand.Float64()*2 - 1
+			//weights[i][j] = rand.NormFloat64()
 		}
 	}
 	return weights
@@ -111,7 +112,7 @@ func (n *network) backward(wanted []float64) {
 		n.cost += costFunc(activation - wanted[i])
 	}
 
-	rate := 0.01
+	rate := 0.001
 
 	delta := make([]float64, len(wanted)) // delta[j] is delC / delZ[j]
 	for i, activation := range n.layers[len(n.layers)-1].activations {
