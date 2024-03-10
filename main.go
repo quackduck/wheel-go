@@ -7,25 +7,31 @@ import (
 
 func main() {
 
-	n := &network{
-		layers: []*layer{
-			newRandomLayer(0, 784), // input layer
-			//newRandomLayer(784, 32),
-			newRandomLayer(784, 16),
-			newRandomLayer(16, 16),
-			//newRandomLayer(16, 16),
-			//newRandomLayer(16, 16),
-			//newRandomLayer(16, 16),
-			//newRandomLayer(16, 16),
-			//newRandomLayer(16, 16),
-			//newRandomLayer(32, 10),
-			newRandomLayer(16, 10), // output layer
-			//newRandomLayer(4, 5),
-			//newRandomLayer(10, 1),
-		},
-	}
+	//n := &network{
+	//	Layers: []*layer{
+	//		newRandomLayer(0, 784), // input layer
+	//		//newRandomLayer(784, 32),
+	//		newRandomLayer(784, 16),
+	//		newRandomLayer(16, 16),
+	//		newRandomLayer(16, 16),
+	//		//newRandomLayer(16, 16),
+	//		//newRandomLayer(16, 16),
+	//		//newRandomLayer(16, 16),
+	//		//newRandomLayer(16, 16),
+	//		//newRandomLayer(32, 10),
+	//		newRandomLayer(16, 10), // output layer
+	//		//newRandomLayer(4, 5),
+	//		//newRandomLayer(10, 1),
+	//	},
+	//}
 
-	//fmt.Println(n[1].weights)
+	filename := "model5.gob"
+
+	n := loadFromFile(filename)
+
+	//fmt.Println(n)
+
+	//fmt.Println(n[1].Weights)
 
 	//input := []float64{1}
 	//fmt.Println(n.forward(input))
@@ -36,7 +42,8 @@ func main() {
 	lastCost := -1.0
 
 	//fmt.Println("Training data size", len(inputs))
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 1000; {
+		i++ // start at 1
 		inputs, targets := makeTrainingDataMNIST()
 		//for d := 0.0; d < 1; d += 0.01 {
 		//	//input := []float64{d}
@@ -74,6 +81,11 @@ func main() {
 			//}
 		}
 
+		if i%100 == 0 {
+			saveToFile(n, filename)
+			fmt.Println("Saved model to", filename, "\n")
+		}
+
 		//if n.cost < 1e-10 {
 		//	fmt.Println("Found a good enough solution")
 		//	break
@@ -100,22 +112,22 @@ func main() {
 
 	test(n)
 
-	//fmt.Println(n.layers[1].weights)
+	//fmt.Println(n.Layers[1].Weights)
 
 	//fmt.Println(n)
 }
 
 func test(n *network) {
 	inputs, targets := makeTestingDataMNIST()
-	fmt.Println("Testing data size", len(inputs))
+	//fmt.Println("Testing data size", len(inputs))
 	correct := 0
 	for i := range inputs {
 		output := n.forward(inputs[i])
-		fmt.Println("Output", output, "Target", targets[i])
+		//fmt.Println("Output", output, "Target", targets[i])
 		if getIndexWithMaxValue(output) == getIndexWithMaxValue(targets[i]) {
 			correct++
 		} else {
-			fmt.Println("Incorrect")
+			//fmt.Println("Incorrect")
 		}
 	}
 	fmt.Println("Correct", correct, "out of", len(inputs))

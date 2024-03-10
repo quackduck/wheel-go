@@ -1,26 +1,33 @@
 package main
 
 import (
+	"fmt"
 	"github.com/petar/GoMNIST"
-	"math/rand"
+	"math/rand/v2"
 )
 
-func makeTrainingDataMNIST() (inputs, targets [][]float64) {
-	train, _, err := GoMNIST.Load("./data")
+var trainData, testData *GoMNIST.Set
+var indices []int
+
+func init() {
+	var err error
+	trainData, testData, err = GoMNIST.Load("./data")
 	if err != nil {
 		panic(err)
 	}
+	indices = rand.Perm(60000) // shuffle
+}
 
-	size := 10000
+var currIndex int
+
+func makeTrainingDataMNIST() (inputs, targets [][]float64) {
+	size := 10000 // batch size
 
 	inputs = make([][]float64, size)
 	targets = make([][]float64, size)
 
-	offset := rand.Intn(60000 - size) // only use the first 6000 images for now
-
 	for i := 0; i < size; i++ {
-		img, label := train.Get(offset + i)
-		//fmt.Println(len(img), label)
+		img, label := trainData.Get(indices[(i+currIndex)%60000]) // random order
 		inputs[i] = make([]float64, 28*28)
 		targets[i] = make([]float64, 10)
 		for j := 0; j < 28*28; j++ {
@@ -32,19 +39,21 @@ func makeTrainingDataMNIST() (inputs, targets [][]float64) {
 		}
 		targets[i][label] = 1
 	}
+	currIndex += size
+	if currIndex >= 60000 {
+		fmt.Println("Epoch finished")
+	}
+	currIndex %= 60000 // this is optional because the index wraps around anyway
 	return
 }
 
 func makeTestingDataMNIST() (inputs, targets [][]float64) {
-	_, test, err := GoMNIST.Load("./data")
-	if err != nil {
-		panic(err)
-	}
+	size := 1000
 
-	inputs = make([][]float64, 1000)
-	targets = make([][]float64, 1000)
-	for i := 0; i < 1000; i++ {
-		img, label := test.Get(i)
+	inputs = make([][]float64, size)
+	targets = make([][]float64, size)
+	for i := 0; i < size; i++ {
+		img, label := testData.Get(i)
 		//fmt.Println(len(img), label)
 		inputs[i] = make([]float64, 28*28)
 		targets[i] = make([]float64, 10)
