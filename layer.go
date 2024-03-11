@@ -49,9 +49,11 @@ func randomWeights(inputSize, thisSize int) [][]float64 {
 
 func randomBiases(size int) []float64 {
 	biases := make([]float64, size)
+	variance := 1 / float64(size)
 	for i := range biases {
 		//Biases[i] = (rand.Float64()*2 - 1) * 0
-		biases[i] = 0
+		biases[i] = rand.NormFloat64() * math.Sqrt(variance)
+		//biases[i] = 0
 	}
 	return biases
 }

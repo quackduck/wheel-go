@@ -2,34 +2,42 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/png"
 	"math"
+	"math/rand/v2"
+	"os"
 )
 
 func main() {
 
-	n := &network{
-		Layers: []*layer{
-			newRandomLayer(0, 784), // input layer
-			//newRandomLayer(784, 32),
-			newRandomLayer(784, 64),
-			newRandomLayer(64, 64),
-			//newRandomLayer(32, 32),
-			//newRandomLayer(16, 16),
-			//newRandomLayer(16, 16),
-			//newRandomLayer(16, 16),
-			//newRandomLayer(16, 16),
-			//newRandomLayer(16, 16),
-			//newRandomLayer(16, 16),
-			//newRandomLayer(32, 10),
-			newRandomLayer(64, 10), // output layer
-			//newRandomLayer(4, 5),
-			//newRandomLayer(10, 1),
-		},
-	}
+	//n := &network{
+	//	Layers: []*layer{
+	//		newRandomLayer(0, 784), // input layer
+	//		//newRandomLayer(784, 32),
+	//		newRandomLayer(784, 16),
+	//		newRandomLayer(16, 16),
+	//		//newRandomLayer(32, 32),
+	//		newRandomLayer(16, 16),
+	//		newRandomLayer(16, 10),
+	//		//newRandomLayer(16, 16),
+	//		//newRandomLayer(16, 16),
+	//		//newRandomLayer(16, 16),
+	//		//newRandomLayer(16, 16),
+	//		//newRandomLayer(16, 16),
+	//		//newRandomLayer(32, 10),
+	//		newRandomLayer(10, 784), // output layer
+	//		//newRandomLayer(4, 5),
+	//		//newRandomLayer(10, 1),
+	//	},
+	//}
 
-	filename := "model7.gob"
+	filename := "model.gob"
 
-	//n := loadFromFile(filename)
+	n := loadFromFile(filename)
+
+	//analyze(n)
+	//return
 
 	//fmt.Println(n)
 
@@ -46,11 +54,11 @@ func main() {
 	//fmt.Println("Training data size", len(inputs))
 
 	trainSize := 60000
-	batchSize := 1
+	batchSize := 1000
 
 	for i := 0; i < 100*trainSize/batchSize; {
 		i++ // start at 1
-		batch := makeTrainingDataMNIST()
+		batch := makeTrainingDataMNISTDevelopHandwriting()
 		//for d := 0.0; d < 1; d += 0.01 {
 		//	//input := []float64{d}
 		//	//target := []float64{math.Sin(d * 2 * math.Pi)}
@@ -61,11 +69,11 @@ func main() {
 		//	n.forward(input)
 		//	n.backward(target)
 		//}
-		//for i := range batch {
-		//	n.forward(batch[i].input)
-		//	n.backward(batch[i].output)
-		//}
-		n.backwardBatched(batch)
+		for i := range batch {
+			n.forward(batch[i].input)
+			n.backward(batch[i].output)
+		}
+		//n.backwardBatched(batch)
 
 		if i%(trainSize/batchSize) == 0 { // every epoch
 			fmt.Println("iteration", i, "cost", n.cost)
@@ -76,8 +84,7 @@ func main() {
 			}
 			lastCost = n.cost
 
-			test(n)
-
+			testRecreate(n)
 			//for d := 0.0; d < 1; d += 0.01 {
 			//	input := []float64{d}
 			//	fmt.Println(input[0], ",", n.forward(input)[0])
@@ -116,11 +123,48 @@ func main() {
 
 	fmt.Println("Score", 1/n.cost)
 
-	test(n)
+	testRecreate(n)
 
 	//fmt.Println(n.Layers[1].Weights)
 
 	//fmt.Println(n)
+}
+
+func testRecreate(n *network) {
+	inputs, _ := makeTestingDataMNIST()
+	in := inputs[rand.IntN(len(inputs))]
+	//in := make([]float64, 784)
+	//for i := range in {
+	//	in[i] = 1
+	//}
+	output := n.forward(in)
+	makeImage(in, "input.png")
+	makeImage(output, "output.png")
+}
+
+func makeImage(data []float64, name string) {
+	img := image.NewGray(image.Rect(0, 0, 28, 28))
+	for i := 0; i < 28*28; i++ {
+		out := 255 * data[i]
+		if out > 255 {
+			out = 255
+		} else if out < 0 {
+			out = 0
+		}
+		img.Pix[i] = uint8(out)
+	}
+
+	file, err := os.Create(name)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+	err = png.Encode(file, img)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }
 
 func test(n *network) {
