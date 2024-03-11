@@ -121,8 +121,8 @@ func (n *network) backward(wanted []float64) {
 	delta := make([]float64, len(wanted)) // delta[j] is delC / delZ[j]
 	for i, activation := range n.Layers[len(n.Layers)-1].activations {
 		delta[i] = 2 * costPrime(activation-wanted[i]) * activatePrime(n.Layers[len(n.Layers)-1].zs[i]) // delC / delZ
-		updateLayerWithDelta(n.Layers[len(n.Layers)-1], n.Layers[len(n.Layers)-2], delta, rate)
 	}
+	updateLayerWithDelta(n.Layers[len(n.Layers)-1], n.Layers[len(n.Layers)-2], delta, rate)
 
 	for i := len(n.Layers) - 2; i >= 1; i-- { // for each layer except the input and output
 		newdelta := make([]float64, len(n.Layers[i].activations)) // one for each neuron
@@ -136,6 +136,75 @@ func (n *network) backward(wanted []float64) {
 		}
 		updateLayerWithDelta(n.Layers[i], n.Layers[i-1], newdelta, rate)
 		delta = newdelta
+	}
+}
+
+type pair struct {
+	input  []float64
+	output []float64
+}
+
+func (n *network) backwardBatched(pairs []pair) {
+	allDeltas := make([][]float64, len(n.Layers))
+	for i := range allDeltas { // for each layer
+		allDeltas[i] = make([]float64, len(n.Layers[i].Weights)) // one for each neuron
+	}
+
+	// add cost for all pairs
+	n.cost = 0.0
+
+	for _, p := range pairs {
+		n.forward(p.input)
+
+		for i, activation := range n.Layers[len(n.Layers)-1].activations {
+			n.cost += costFunc(activation - p.output[i])
+		}
+
+		delta := make([]float64, len(n.Layers[len(n.Layers)-1].activations)) // delta[j] is delC / delZ[j]
+		for i, activation := range n.Layers[len(n.Layers)-1].activations {
+			delta[i] = 2 * costPrime(activation-p.output[i]) * activatePrime(n.Layers[len(n.Layers)-1].zs[i]) // delC / delZ
+		}
+		//fmt.Println("delta", allDeltas[len(n.Layers)-1])
+		sum1d(allDeltas[len(n.Layers)-1], delta) // add the delta to the last layer's deltas
+		//fmt.Println("delta 2", allDeltas[len(n.Layers)-1])
+
+		for i := len(n.Layers) - 2; i >= 1; i-- { // for each layer except the input and output
+			newdelta := make([]float64, len(n.Layers[i].activations)) // one for each neuron
+			//fmt.Println("newdelta", newdelta, "delta", delta)
+			// go over all the neurons in the next layer and add up the impact of their delta on this layer's delta
+			for j := range n.Layers[i].activations { // for each neuron in this layer
+				var sum float64
+				for k := range n.Layers[i+1].activations { // for each neuron in the next layer
+					sum += n.Layers[i+1].Weights[k][j] * delta[k]
+				}
+				newdelta[j] = sum * activatePrime(n.Layers[i].zs[j])
+			}
+			sum1d(allDeltas[i], newdelta)
+			delta = newdelta
+		}
+	}
+
+	n.cost /= float64(len(pairs))
+
+	rate := 0.001 / float64(len(pairs))
+
+	for i := len(n.Layers) - 1; i >= 1; i-- { // for each layer except the input
+		//multScalar1d(1/float64(len(pairs)), allDeltas[i])
+		updateLayerWithDelta(n.Layers[i], n.Layers[i-1], allDeltas[i], rate)
+		//fmt.Println("deltas", allDeltas[i])
+	}
+}
+
+// sum1d adds two 1d slices together and stores the result in the first slice
+func sum1d(one []float64, two []float64) {
+	for i := range one {
+		one[i] += two[i]
+	}
+}
+
+func multScalar1d(scalar float64, arr []float64) {
+	for i := range arr {
+		arr[i] *= scalar
 	}
 }
 

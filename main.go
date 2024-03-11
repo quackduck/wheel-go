@@ -11,8 +11,8 @@ func main() {
 		Layers: []*layer{
 			newRandomLayer(0, 784), // input layer
 			//newRandomLayer(784, 32),
-			newRandomLayer(784, 32),
-			newRandomLayer(32, 32),
+			newRandomLayer(784, 64),
+			newRandomLayer(64, 64),
 			//newRandomLayer(32, 32),
 			//newRandomLayer(16, 16),
 			//newRandomLayer(16, 16),
@@ -21,13 +21,13 @@ func main() {
 			//newRandomLayer(16, 16),
 			//newRandomLayer(16, 16),
 			//newRandomLayer(32, 10),
-			newRandomLayer(32, 10), // output layer
+			newRandomLayer(64, 10), // output layer
 			//newRandomLayer(4, 5),
 			//newRandomLayer(10, 1),
 		},
 	}
 
-	filename := "model6.gob"
+	filename := "model7.gob"
 
 	//n := loadFromFile(filename)
 
@@ -44,9 +44,13 @@ func main() {
 	lastCost := -1.0
 
 	//fmt.Println("Training data size", len(inputs))
-	for i := 0; i < 1000; {
+
+	trainSize := 60000
+	batchSize := 1
+
+	for i := 0; i < 100*trainSize/batchSize; {
 		i++ // start at 1
-		inputs, targets := makeTrainingDataMNIST()
+		batch := makeTrainingDataMNIST()
 		//for d := 0.0; d < 1; d += 0.01 {
 		//	//input := []float64{d}
 		//	//target := []float64{math.Sin(d * 2 * math.Pi)}
@@ -57,12 +61,13 @@ func main() {
 		//	n.forward(input)
 		//	n.backward(target)
 		//}
-		for i := range inputs {
-			n.forward(inputs[i])
-			n.backward(targets[i])
-		}
+		//for i := range batch {
+		//	n.forward(batch[i].input)
+		//	n.backward(batch[i].output)
+		//}
+		n.backwardBatched(batch)
 
-		if i%10 == 0 {
+		if i%(trainSize/batchSize) == 0 { // every epoch
 			fmt.Println("iteration", i, "cost", n.cost)
 			if lastCost > 0 {
 				fmt.Println("cost ratio", n.cost/lastCost)
@@ -81,11 +86,10 @@ func main() {
 			//if i > 0 {
 			//	return
 			//}
-		}
-
-		if i%100 == 0 {
+			//if i%100 == 0 {
 			saveToFile(n, filename)
 			fmt.Println("Saved model to", filename, "\n")
+			//}
 		}
 
 		//if n.cost < 1e-10 {

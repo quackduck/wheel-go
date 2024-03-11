@@ -20,24 +20,24 @@ func init() {
 
 var currIndex int
 
-func makeTrainingDataMNIST() (inputs, targets [][]float64) {
-	size := 6000 // batch size
+func makeTrainingDataMNIST() (batch []pair) {
+	size := 1 // batch size
+	//size := 20 // batch size
 
-	inputs = make([][]float64, size)
-	targets = make([][]float64, size)
+	batch = make([]pair, size)
 
 	for i := 0; i < size; i++ {
 		img, label := trainData.Get(indices[(i+currIndex)%60000]) // random order
-		inputs[i] = make([]float64, 28*28)
-		targets[i] = make([]float64, 10)
+		batch[i].input = make([]float64, 28*28)
+		batch[i].output = make([]float64, 10)
 		for j := 0; j < 28*28; j++ {
-			inputs[i][j] = float64(img[j]) / 255 // normalize
+			batch[i].input[j] = float64(img[j]) / 255 // normalize
 		}
 
 		for j := 0; j < 10; j++ {
-			targets[i][j] = -1
+			batch[i].output[j] = -1
 		}
-		targets[i][label] = 1
+		batch[i].output[label] = 1
 	}
 	currIndex += size
 	if currIndex == 60000 {
