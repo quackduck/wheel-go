@@ -7,27 +7,29 @@ import (
 
 func main() {
 
-	//n := &network{
-	//	Layers: []*layer{
-	//		newRandomLayer(0, 784), // input layer
-	//		//newRandomLayer(784, 32),
-	//		newRandomLayer(784, 16),
-	//		newRandomLayer(16, 16),
-	//		newRandomLayer(16, 16),
-	//		//newRandomLayer(16, 16),
-	//		//newRandomLayer(16, 16),
-	//		//newRandomLayer(16, 16),
-	//		//newRandomLayer(16, 16),
-	//		//newRandomLayer(32, 10),
-	//		newRandomLayer(16, 10), // output layer
-	//		//newRandomLayer(4, 5),
-	//		//newRandomLayer(10, 1),
-	//	},
-	//}
+	n := &network{
+		Layers: []*layer{
+			newRandomLayer(0, 784), // input layer
+			//newRandomLayer(784, 32),
+			newRandomLayer(784, 32),
+			newRandomLayer(32, 32),
+			//newRandomLayer(32, 32),
+			//newRandomLayer(16, 16),
+			//newRandomLayer(16, 16),
+			//newRandomLayer(16, 16),
+			//newRandomLayer(16, 16),
+			//newRandomLayer(16, 16),
+			//newRandomLayer(16, 16),
+			//newRandomLayer(32, 10),
+			newRandomLayer(32, 10), // output layer
+			//newRandomLayer(4, 5),
+			//newRandomLayer(10, 1),
+		},
+	}
 
-	filename := "model5.gob"
+	filename := "model6.gob"
 
-	n := loadFromFile(filename)
+	//n := loadFromFile(filename)
 
 	//fmt.Println(n)
 

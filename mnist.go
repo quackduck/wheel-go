@@ -21,7 +21,7 @@ func init() {
 var currIndex int
 
 func makeTrainingDataMNIST() (inputs, targets [][]float64) {
-	size := 10000 // batch size
+	size := 6000 // batch size
 
 	inputs = make([][]float64, size)
 	targets = make([][]float64, size)
@@ -40,8 +40,9 @@ func makeTrainingDataMNIST() (inputs, targets [][]float64) {
 		targets[i][label] = 1
 	}
 	currIndex += size
-	if currIndex >= 60000 {
+	if currIndex == 60000 {
 		fmt.Println("Epoch finished")
+		indices = rand.Perm(60000) // shuffle
 	}
 	currIndex %= 60000 // this is optional because the index wraps around anyway
 	return
