@@ -11,30 +11,19 @@ import (
 
 func main() {
 
-	//n := &network{
-	//	Layers: []*layer{
-	//		newRandomLayer(0, 784), // input layer
-	//		//newRandomLayer(784, 32),
-	//		newRandomLayer(784, 16),
-	//		newRandomLayer(16, 16),
-	//		//newRandomLayer(32, 32),
-	//		newRandomLayer(16, 16),
-	//		newRandomLayer(16, 10),
-	//		//newRandomLayer(16, 16),
-	//		//newRandomLayer(16, 16),
-	//		//newRandomLayer(16, 16),
-	//		//newRandomLayer(16, 16),
-	//		//newRandomLayer(16, 16),
-	//		//newRandomLayer(32, 10),
-	//		newRandomLayer(10, 784), // output layer
-	//		//newRandomLayer(4, 5),
-	//		//newRandomLayer(10, 1),
-	//	},
-	//}
+	n := &network{
+		Layers: []*layer{
+			newRandomLayer(0, 784), // input layer
+			newRandomLayer(784, 64),
+			//newRandomLayer(64, 64),
+			//newRandomLayer(32, 32),
+			newRandomLayer(64, 784), // output layer
+		},
+	}
 
-	filename := "model.gob"
+	filename := "addone.gob"
 
-	n := loadFromFile(filename)
+	//n := loadFromFile(filename)
 
 	//analyze(n)
 	//return
@@ -56,9 +45,11 @@ func main() {
 	trainSize := 60000
 	batchSize := 1000
 
-	for i := 0; i < 100*trainSize/batchSize; {
+	numEpochs := 1000
+
+	for i := 0; i < numEpochs*trainSize/batchSize; {
 		i++ // start at 1
-		batch := makeTrainingDataMNISTDevelopHandwriting()
+		batch := makeTrainingDataMNISTAddOne()
 		//for d := 0.0; d < 1; d += 0.01 {
 		//	//input := []float64{d}
 		//	//target := []float64{math.Sin(d * 2 * math.Pi)}
@@ -128,6 +119,16 @@ func main() {
 	//fmt.Println(n.Layers[1].Weights)
 
 	//fmt.Println(n)
+}
+
+func showWrite(n *network) {
+	num := rand.IntN(10)
+	input := make([]float64, 10)
+	for i := range input {
+		input[i] = -1
+	}
+	input[num] = 1
+	makeImage(n.forward(input), "digit.png")
 }
 
 func testRecreate(n *network) {

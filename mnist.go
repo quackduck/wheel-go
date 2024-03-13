@@ -114,6 +114,57 @@ func makeTrainingDataMNISTDevelopHandwriting() (batch []pair) {
 	return
 }
 
+func makeTrainingDataMNISTDevelopHandwriting2() (batch []pair) {
+	// for every input image, the target is another image of the same label
+	size := 1000 // batch size
+
+	batch = make([]pair, size)
+
+	for i := 0; i < size; i++ {
+		img, label := trainData.Get(indices[(i+currIndex)%60000]) // random order
+		batch[i].output = make([]float64, 28*28)
+		for j := 0; j < 28*28; j++ {
+			batch[i].output[j] = float64(img[j]) / 255 // normalize
+		}
+		batch[i].input = make([]float64, 10)
+		for j := 0; j < 10; j++ {
+			batch[i].input[j] = -1
+		}
+		batch[i].input[label] = 1
+	}
+	currIndex += size
+	if currIndex == 60000 {
+		fmt.Println("Epoch finished")
+		indices = rand.Perm(60000) // shuffle
+	}
+	currIndex %= 60000 // this is optional because the index wraps around anyway
+	return
+}
+
+func makeTrainingDataMNISTAddOne() (batch []pair) {
+	// for every input image, the target is another image of the same label
+	size := 1000 // batch size
+
+	batch = make([]pair, size)
+
+	for i := 0; i < size; i++ {
+		img, label := trainData.Get(indices[(i+currIndex)%60000]) // random order
+		batch[i].input = make([]float64, 28*28)
+		for j := 0; j < 28*28; j++ {
+			batch[i].input[j] = float64(img[j]) / 255 // normalize
+		}
+		//batch[i].output = getRandomImageByLabel(int(label+1) % 10)
+		batch[i].output = imagesByLabel[(label+1)%10][0] // get the first image of the next label
+	}
+	currIndex += size
+	if currIndex == 60000 {
+		fmt.Println("Epoch finished")
+		indices = rand.Perm(60000) // shuffle
+	}
+	currIndex %= 60000 // this is optional because the index wraps around anyway
+	return
+}
+
 func makeTestingDataMNIST() (inputs, targets [][]float64) {
 	size := 1000
 
